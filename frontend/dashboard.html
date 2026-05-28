@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BudgetIQ — Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#7c3aed">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="BudgetIQ">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
 <div class="app-shell">
@@ -67,20 +59,35 @@
 
     <!-- Topbar -->
     <header class="topbar">
-      <div class="topbar-left">
-        <h1 id="topbarTitle">Welcome back!</h1>
-        <p id="topbarSub">It is the best time to manage your finances</p>
+      <div class="topbar-brand">
+        <div class="topbar-brand-icon">💰</div>
+        <span class="topbar-brand-name">BudgetIQ</span>
       </div>
+
+      <nav class="topbar-nav">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span> Dashboard</button>
+        <button class="nav-item" data-page="transactions"><span class="nav-icon">💸</span> Transactions</button>
+        <button class="nav-item" data-page="wallet"><span class="nav-icon">👛</span> Wallet</button>
+        <button class="nav-item" data-page="goals"><span class="nav-icon">🎯</span> Goals</button>
+        <button class="nav-item" data-page="budget"><span class="nav-icon">📋</span> Budget</button>
+        <button class="nav-item" data-page="analytics"><span class="nav-icon">📊</span> Analytics</button>
+        <button class="nav-item" data-page="ai"><span class="nav-icon">🤖</span> AI</button>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span> Settings</button>
+        <button class="nav-item" data-page="help"><span class="nav-icon">❓</span> Help</button>
+      </nav>
+
       <div class="topbar-right">
+        <button class="topbar-icon-btn">
           🔔<span class="notif-dot"></span>
         </button>
         <div class="user-chip">
           <div class="user-avatar" id="userAvatar">U</div>
           <div>
-            <div class="user-info-name"  id="userName">User</div>
+            <div class="user-info-name" id="userName">User</div>
             <div class="user-info-email" id="userEmail">user@email.com</div>
           </div>
         </div>
+        <button class="nav-item logout-btn" onclick="logout()"><span class="nav-icon">🚪</span></button>
       </div>
     </header>
 
@@ -455,6 +462,36 @@
       </div>
     </div>
 
+
+    <!-- ══ PAGE: AI CHAT ════════════════════════════════════════════ -->
+    <div class="page" id="page-ai">
+      <div class="dash-content">
+        <div class="page-header">
+          <div><h2 class="page-title">🤖 AI Assistant</h2><p class="page-sub">Ask anything about your finances</p></div>
+        </div>
+        <div class="widget ai-chat-widget">
+          <div class="ai-chat-messages" id="aiMessages">
+            <div class="ai-msg ai">
+              <div class="ai-msg-avatar">🤖</div>
+              <div class="ai-msg-bubble">
+                <p>Hi! I'm your BudgetIQ AI assistant. I can help you analyze your spending, suggest savings tips, and answer financial questions. What would you like to know?</p>
+              </div>
+            </div>
+          </div>
+          <div class="ai-quick-prompts">
+            <button class="ai-prompt-chip" onclick="sendQuickPrompt(this)">📊 Analyze my spending</button>
+            <button class="ai-prompt-chip" onclick="sendQuickPrompt(this)">💡 Give me savings tips</button>
+            <button class="ai-prompt-chip" onclick="sendQuickPrompt(this)">🎯 Help me set a budget</button>
+            <button class="ai-prompt-chip" onclick="sendQuickPrompt(this)">📈 How can I save more?</button>
+          </div>
+          <div class="ai-chat-input-wrap">
+            <textarea class="ai-chat-input" id="aiInput" placeholder="Ask me anything about your finances..." rows="1" onkeydown="handleAiKey(event)"></textarea>
+            <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app-shell -->
 
@@ -514,15 +551,5 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="script.js"></script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => console.log('[SW] Registered:', reg.scope))
-          .catch(err => console.log('[SW] Failed:', err));
-      });
-    }
-  </script>
 </body>
 </html>
