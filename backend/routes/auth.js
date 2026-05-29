@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // ← ADD THIS
 
 // ── REGISTER ──────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
@@ -41,10 +42,18 @@ router.post('/login', async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ msg: "Incorrect password" });
 
+    // ── GENERATE JWT TOKEN ────────────────────────────────────────
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.json({
       msg: "Login Success",
+      token,                   // ← frontend saves this
       userId: user._id,
-      name:   user.name,       // ← needed for welcome message
+      name:   user.name,
       email:  user.email
     });
   } catch (err) {

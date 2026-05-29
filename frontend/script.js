@@ -1,4 +1,13 @@
-const API = "http://localhost:5000/api";
+const API = "https://budgetiq-backend-oays.onrender.com/api";
+
+// ── AUTH HEADERS ───────────────────────────────────────────────────────────────
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { "Authorization": "Bearer " + token } : {})
+  };
+}
 
 // ── GLOBAL STATE ───────────────────────────────────────────────────────────────
 let allTransactions = [];
@@ -94,6 +103,7 @@ async function login() {
     const data = await res.json();
     if (data.userId) {
       localStorage.setItem("userId",    data.userId);
+      localStorage.setItem("token",     data.token);   // ← save JWT token
       localStorage.setItem("userName",  data.name || email.split("@")[0]);
       localStorage.setItem("userEmail", email);
       showToast("Welcome back, " + (data.name || "User") + "!");
@@ -215,7 +225,7 @@ async function loadData() {
   if (!userId) return;
 
   try {
-    const res  = await fetch(API + "/transactions/" + userId);
+    const res  = await fetch(API + "/transactions/" + userId, { headers: authHeaders() });
     allTransactions = await res.json();
     refreshAll();
   } catch {
@@ -224,14 +234,14 @@ async function loadData() {
 
   // Load goals
   try {
-    const res2 = await fetch(API + "/goals/all/" + userId);
+    const res2 = await fetch(API + "/goals/all/" + userId, { headers: authHeaders() });
     allGoals = await res2.json();
     renderGoalsMini();
     renderGoalsPage();
   } catch {
     // Goals endpoint may not support /all yet — try single
     try {
-      const res2 = await fetch(API + "/goals/" + userId);
+      const res2 = await fetch(API + "/goals/" + userId, { headers: authHeaders() });
       const g = await res2.json();
       allGoals = g && g._id ? [g] : [];
       renderGoalsMini();
@@ -673,7 +683,6 @@ function renderAnalytics() {
     });
   } else if (pCtx) {
     if (pieChartInst) { pieChartInst.destroy(); pieChartInst = null; }
-    // show placeholder
     pCtx.parentElement.innerHTML += `<div class="empty-state" style="padding:40px 0"><div class="es-icon">📊</div><h4>No expense data yet</h4></div>`;
   }
 }
@@ -741,7 +750,7 @@ async function addGoal() {
 
   try {
     await fetch(API + "/goals/set", {
-      method:"POST", headers:{"Content-Type":"application/json"},
+      method:"POST", headers: authHeaders(),
       body: JSON.stringify({ userId, name, target, saved })
     });
 
@@ -754,7 +763,6 @@ async function addGoal() {
     document.getElementById("goalSaved").value  = "";
     showToast("Goal added successfully!");
   } catch {
-    // Save locally even if API fails
     allGoals.push({ name, target, saved });
     renderGoalsMini();
     renderGoalsPage();
@@ -765,15 +773,15 @@ async function addGoal() {
 
 function deleteGoal(id, index) {
   if (!confirm("Delete this goal?")) return;
-  // Try API delete
   if (id && id !== "undefined") {
-    fetch(API + "/goals/" + id, { method: "DELETE" }).catch(() => {});
+    fetch(API + "/goals/" + id, { method: "DELETE", headers: authHeaders() }).catch(() => {});
   }
   allGoals.splice(index, 1);
   renderGoalsMini();
   renderGoalsPage();
   showToast("Goal deleted");
 }
+
 function openEditGoal(index) {
   const g = allGoals[index];
   if (!g) return;
@@ -794,11 +802,10 @@ async function saveEditGoal() {
 
   if (!name || !target) return showToast("Please fill goal name and target", "error");
 
-  // Try API update
   if (id) {
     try {
       await fetch(API + "/goals/" + id, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name, target, saved })
       });
     } catch {}
@@ -810,6 +817,7 @@ async function saveEditGoal() {
   closeModal("editGoal");
   showToast("Goal updated!");
 }
+
 // ── ADD TRANSACTION ───────────────────────────────────────────────────────────
 
 async function addTransaction() {
@@ -824,7 +832,7 @@ async function addTransaction() {
 
   try {
     await fetch(API + "/transactions/add", {
-      method:"POST", headers:{"Content-Type":"application/json"},
+      method:"POST", headers: authHeaders(),
       body: JSON.stringify({ userId, amount, type, category, date })
     });
     document.getElementById("amount").value = "";
@@ -841,7 +849,7 @@ async function addTransaction() {
 async function deleteTx(id) {
   if (!confirm("Delete this transaction?")) return;
   try {
-    await fetch(API + "/transactions/" + id, { method:"DELETE" });
+    await fetch(API + "/transactions/" + id, { method:"DELETE", headers: authHeaders() });
     showToast("Transaction deleted");
     await loadData();
     renderAllTransactions();
@@ -853,7 +861,7 @@ async function editTx(id, oldAmount) {
   if (!newAmount || isNaN(newAmount) || Number(newAmount) <= 0) return;
   try {
     await fetch(API + "/transactions/" + id, {
-      method:"PUT", headers:{"Content-Type":"application/json"},
+      method:"PUT", headers: authHeaders(),
       body: JSON.stringify({ amount: Number(newAmount) })
     });
     showToast("Transaction updated!");
@@ -882,7 +890,6 @@ function initSettings() {
   if (ei) ei.value = email;
   if (cs) cs.value = localStorage.getItem("currency") || "₹";
 
-  // Theme buttons
   const theme = localStorage.getItem("theme") || "light";
   document.getElementById("settingsLightBtn")?.classList.toggle("active", theme === "light");
   document.getElementById("settingsDarkBtn")?.classList.toggle("active", theme === "dark");
@@ -896,7 +903,6 @@ function saveProfile() {
   localStorage.setItem("userName", name);
   if (email) localStorage.setItem("userEmail", email);
 
-  // Update topbar
   document.getElementById("userName").textContent  = name;
   document.getElementById("userEmail").textContent = email;
   document.getElementById("userAvatar").textContent = name.charAt(0).toUpperCase();
@@ -911,7 +917,7 @@ function savePrefs() {
     localStorage.setItem("currency", currency);
   }
   showToast("Preferences saved!");
-  loadData(); // re-render with new currency
+  loadData();
 }
 
 function setTheme(mode, silent = false) {
@@ -940,7 +946,6 @@ function setTheme(mode, silent = false) {
     root.style.setProperty("--purple-mid", "#ddd6fe");
   }
 
-  // Update all theme buttons
   ["lightBtn","settingsLightBtn"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("active", mode === "light");
@@ -969,15 +974,14 @@ function confirmDelete() {
 function toggleFaq(el) {
   const answer = el.nextElementSibling;
   const isOpen = answer.style.display === "block";
-  // Close all
   document.querySelectorAll(".faq-a").forEach(a => a.style.display = "none");
   document.querySelectorAll(".faq-q span").forEach(s => s.textContent = "▾");
-  // Open if was closed
   if (!isOpen) {
     answer.style.display = "block";
     el.querySelector("span").textContent = "▴";
   }
 }
+
 // ── AI CHAT ────────────────────────────────────────────────────────────────
 
 function handleAiKey(e) {
@@ -989,7 +993,7 @@ function handleAiKey(e) {
 
 function sendQuickPrompt(btn) {
   const input = document.getElementById('aiInput');
-  input.value = btn.textContent.replace(/^[^\s]+\s/, ''); // strip emoji
+  input.value = btn.textContent.replace(/^[^\s]+\s/, '');
   sendAiMessage();
 }
 
@@ -1000,7 +1004,6 @@ async function sendAiMessage() {
   const message = input.value.trim();
   if (!message) return;
 
-  // Add user message
   msgs.innerHTML += `
     <div class="ai-msg user">
       <div class="ai-msg-avatar user-av">U</div>
@@ -1010,7 +1013,6 @@ async function sendAiMessage() {
   sendBtn.disabled = true;
   msgs.scrollTop = msgs.scrollHeight;
 
-  // Typing indicator
   const typingId = 'typing-' + Date.now();
   msgs.innerHTML += `
     <div class="ai-msg ai" id="${typingId}">
@@ -1021,7 +1023,6 @@ async function sendAiMessage() {
     </div>`;
   msgs.scrollTop = msgs.scrollHeight;
 
-  // Build financial context
   const totalIncome  = allTransactions.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
   const totalExpense = allTransactions.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
   const context = {
